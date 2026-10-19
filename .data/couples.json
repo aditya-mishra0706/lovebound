@@ -1,0 +1,61 @@
+{
+  "DUO-TEST1": {
+    "code": "DUO-TEST1",
+    "creator": {
+      "id": "user_1",
+      "name": "Aditya",
+      "avatar": "🦋",
+      "email": "",
+      "streakDays": 1,
+      "statusText": "Connected & in love",
+      "isDeepWork": false,
+      "focusMinutesToday": 0,
+      "tasks": []
+    },
+    "shared": {
+      "coupleName": "Aditya & Maya",
+      "togetherSince": "2025-10-30",
+      "sharedTasks": [],
+      "goals": [],
+      "milestones": [],
+      "memories": [],
+      "tree": {
+        "level": 1,
+        "points": 25,
+        "maxPoints": 100,
+        "stageName": "Growing beautifully! 🌿",
+        "waterCountToday": 0
+      },
+      "settings": {
+        "coupleName": "Aditya & Maya",
+        "togetherSince": "2025-10-30",
+        "theme": "cosmic",
+        "celebrationFx": "confetti",
+        "cheersAndNudges": true,
+        "partnerActivityAlerts": true,
+        "soundAndHaptics": true,
+        "language": "English"
+      }
+    },
+    "recentReactions": [
+      {
+        "id": "rx-pair-1792396157526",
+        "type": "love",
+        "senderName": "Maya",
+        "timestamp": 1792396157526
+      }
+    ],
+    "updatedAt": 1792396157526,
+    "partner": {
+      "id": "user_2",
+      "name": "Maya",
+      "avatar": "🌸",
+      "email": "",
+      "streakDays": 1,
+      "statusText": "Paired & online",
+      "isDeepWork": false,
+      "focusMinutesToday": 0,
+      "tasks": []
+    }
+  }
+}

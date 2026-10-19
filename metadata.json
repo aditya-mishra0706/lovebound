@@ -1,0 +1,6 @@
+{
+  "name": "Duo - Couple Goals & Milestones",
+  "description": "Phone app for tracking couple goals, shared milestones, interactive charts, and private photo memories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
