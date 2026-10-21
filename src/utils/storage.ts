@@ -59,19 +59,61 @@ export const INITIAL_GOALS: CoupleGoal[] = [];
 export const INITIAL_MILESTONES: Milestone[] = [];
 export const INITIAL_MEMORIES: PhotoMemory[] = [];
 
+export const getTreeSpeciesInfo = (level: number) => {
+  if (level < 5) {
+    return {
+      species: 'Bonsai of New Love 🌱',
+      tier: 'Common (Tier 1)',
+      stageName: `Lvl ${level} Sprout Bonsai`,
+      colorTheme: 'emerald',
+    };
+  } else if (level < 10) {
+    return {
+      species: 'Sakura Blossom Tree 🌸',
+      tier: 'Rare (Tier 2)',
+      stageName: `Lvl ${level} Enchanted Sakura`,
+      colorTheme: 'pink',
+    };
+  } else if (level < 15) {
+    return {
+      species: 'Golden Sun Willow 🌟',
+      tier: 'Epic (Tier 3)',
+      stageName: `Lvl ${level} Radiant Willow`,
+      colorTheme: 'amber',
+    };
+  } else if (level < 20) {
+    return {
+      species: 'Celestial Wisteria 🔮',
+      tier: 'Mythic (Tier 4)',
+      stageName: `Lvl ${level} Twilight Wisteria`,
+      colorTheme: 'purple',
+    };
+  } else {
+    return {
+      species: 'Eternal Heart Tree 💖',
+      tier: 'Transcendent (Tier 5)',
+      stageName: `Lvl ${level} Cosmic Tree of Life`,
+      colorTheme: 'rose',
+    };
+  }
+};
+
 export const INITIAL_TREE: TreeState = {
   level: 1,
-  points: 15,
-  maxPoints: 100,
-  stageName: 'Growing beautifully! 🌿',
+  points: 0,
+  maxPoints: 80,
+  stageName: 'Lvl 1 Sprout Bonsai 🌱',
+  species: 'Bonsai of New Love 🌱',
+  tier: 'Common (Tier 1)',
+  isWithered: false,
   waterCountToday: 0,
 };
 
 export const INITIAL_SETTINGS: CoupleSettings = {
   coupleName: 'Sweethearts 🍯',
   togetherSince: new Date().toISOString().split('T')[0],
-  theme: 'cosmic',
-  celebrationFx: 'confetti',
+  theme: 'dark',
+  celebrationFx: true,
   cheersAndNudges: true,
   partnerActivityAlerts: true,
   soundAndHaptics: true,

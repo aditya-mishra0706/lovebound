@@ -22,7 +22,7 @@ import {
 import { CoupleSettings, ThemeMode, UserProfile, CelebrationEffect } from '../types';
 import { THEMES } from '../utils/theme';
 import { sounds } from '../utils/audio';
-import { triggerCelebration } from '../utils/confetti';
+import { triggerCelebration, stopCelebration } from '../utils/confetti';
 
 interface SettingsTabProps {
   settings: CoupleSettings;
@@ -90,10 +90,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     sounds.playPop(settings.soundAndHaptics);
   };
 
-  const handleSelectCelebration = (fx: CelebrationEffect) => {
-    onUpdateSettings({ celebrationFx: fx });
-    triggerCelebration(fx);
-    sounds.playSuccess(settings.soundAndHaptics);
+  const isFxEnabled = typeof settings.celebrationFx === 'boolean'
+    ? settings.celebrationFx
+    : (settings.celebrationFx as any) !== 'none' && (settings.celebrationFx as any) !== 'no';
+
+  const handleToggleCelebration = (enable: boolean) => {
+    onUpdateSettings({ celebrationFx: enable });
+    if (!enable) {
+      stopCelebration();
+      sounds.playPop(settings.soundAndHaptics);
+    } else {
+      triggerCelebration(true);
+      sounds.playSuccess(settings.soundAndHaptics);
+    }
   };
 
   return (
@@ -280,49 +289,50 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             </span>
           </div>
 
-          {/* Row 3: Celebration FX */}
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-                <div>
-                  <h4 className="text-sm font-bold text-white">Celebration FX</h4>
-                  <p className="text-xs text-slate-400">
-                    Effect triggered on cheer or task completion
-                  </p>
-                </div>
+          {/* Row 3: Celebration FX - Strictly YES or NO */}
+          <div className="p-4 flex items-center justify-between border-t border-[#262a4d]">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+              <div>
+                <h4 className="text-sm font-bold text-white">Celebration FX</h4>
+                <p className="text-xs text-slate-400">
+                  Play minimal celebration animation on milestones
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {[
-                { id: 'confetti', label: '🎉 Confetti' },
-                { id: 'hearts', label: '💖 Floating Hearts' },
-                { id: 'fireworks', label: '🎆 Fireworks' },
-                { id: 'sparkles', label: '✨ Sparkles' },
-              ].map((fx) => (
-                <button
-                  key={fx.id}
-                  onClick={() => handleSelectCelebration(fx.id as CelebrationEffect)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
-                    settings.celebrationFx === fx.id
-                      ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-sm'
-                      : 'bg-[#1b1e36] border-[#2b3055] text-slate-300 hover:border-slate-500'
-                  }`}
-                >
-                  <span>{fx.label}</span>
-                  {settings.celebrationFx === fx.id && <Check className="w-3.5 h-3.5 text-purple-400" />}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#1b1e36] border border-[#2b3055]">
+              <button
+                type="button"
+                onClick={() => handleToggleCelebration(true)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isFxEnabled
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleCelebration(false)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !isFxEnabled
+                    ? 'bg-rose-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* APPEARANCE & THEMES (Matches Screenshot 5 & 4) */}
+      {/* APPEARANCE & THEMES */}
       <div className="space-y-2.5">
-        <span className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1">
-          APPEARANCE & THEMES
+        <span className="text-xs font-bold tracking-wider theme-text-muted uppercase px-1">
+          APPEARANCE & THEMES (4 OPTIONS)
         </span>
 
         <div className="grid grid-cols-2 gap-3">
@@ -334,8 +344,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 onClick={() => handleSelectTheme(theme.id)}
                 className={`relative rounded-3xl p-4 transition-all cursor-pointer border ${
                   isSelected
-                    ? 'bg-[#1b1e36] border-purple-400 ring-2 ring-purple-500/40 shadow-lg'
-                    : 'bg-[#151728] border-[#262a4d] hover:border-slate-500'
+                    ? 'theme-card ring-2 ring-purple-500 shadow-xl'
+                    : 'theme-card-subtle theme-border hover:opacity-90'
                 }`}
               >
                 {theme.badge && (
@@ -345,8 +355,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 )}
 
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#24284b] text-sm">
-                    {theme.id === 'lovey' ? '💕' : theme.id === 'warm' ? '🤍' : theme.id === 'oled' ? '🖤' : theme.id === 'lavender' ? '💜' : '🌙'}
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center theme-card border theme-border text-base shadow-sm">
+                    {theme.id === 'light' ? '☀️' : theme.id === 'dark' ? '🌙' : theme.id === 'love' ? '💕' : '✨'}
                   </div>
 
                   {isSelected && (
@@ -356,17 +366,17 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   )}
                 </div>
 
-                <h4 className="text-xs font-bold text-white">{theme.name}</h4>
-                <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                <h4 className="text-xs font-bold theme-text">{theme.name}</h4>
+                <p className="text-[10px] theme-text-muted mt-0.5 line-clamp-2 leading-relaxed">
                   {theme.tagline}
                 </p>
 
-                {/* Color preview dots (as in screenshot 5) */}
-                <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-[#222543]">
+                {/* Color preview dots */}
+                <div className="flex items-center gap-1.5 mt-3 pt-2 border-t theme-border">
                   {theme.previewDots.map((dotColor, idx) => (
                     <span
                       key={idx}
-                      className="w-3 h-3 rounded-full border border-black/30"
+                      className="w-3.5 h-3.5 rounded-full border border-black/20 shadow-xs"
                       style={{ backgroundColor: dotColor }}
                     />
                   ))}

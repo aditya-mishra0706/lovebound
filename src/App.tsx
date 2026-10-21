@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   loadFromStorage, 
   saveToStorage, 
@@ -21,6 +21,7 @@ import {
   DEMO_GOALS,
   DEMO_MILESTONES,
   DEMO_MEMORIES,
+  getTreeSpeciesInfo,
   clearAllData 
 } from './utils/storage';
 import { 
@@ -32,7 +33,9 @@ import {
   PhotoMemory, 
   TreeState, 
   CoupleSettings, 
-  ThemeMode 
+  ThemeMode,
+  FocusModeStatus,
+  CelebrationEffect
 } from './types';
 import { THEMES } from './utils/theme';
 import { PhoneFrame } from './components/PhoneFrame';
@@ -48,17 +51,16 @@ import { AddGoalModal } from './components/AddGoalModal';
 import { AddMilestoneModal } from './components/AddMilestoneModal';
 import { AddMemoryModal } from './components/AddMemoryModal';
 import { sounds } from './utils/audio';
-import { triggerCelebration } from './utils/confetti';
-import { syncManager, SyncMessage } from './utils/syncChannel';
+import { triggerCelebration, stopCelebration } from './utils/confetti';
 import { syncService } from './utils/syncService';
 
 export default function App() {
-  // 1. Authentication & Pairing Session (Persistent across app restarts)
+  // 1. Authentication & Pairing Session
   const [authSession, setAuthSession] = useState<AuthSession>(() =>
     loadFromStorage(STORAGE_KEYS.AUTH_SESSION, INITIAL_AUTH_SESSION)
   );
 
-  // 2. Persistent States (NO dummy fallback for real accounts)
+  // 2. Persistent States
   const [users, setUsers] = useState<Record<string, UserProfile>>(() =>
     loadFromStorage(STORAGE_KEYS.USERS, INITIAL_USERS)
   );
@@ -83,11 +85,16 @@ export default function App() {
     loadFromStorage(STORAGE_KEYS.TREE, INITIAL_TREE)
   );
 
-  const [settings, setSettings] = useState<CoupleSettings>(() =>
-    loadFromStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
-  );
+  const [settings, setSettings] = useState<CoupleSettings>(() => {
+    const loaded = loadFromStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+    // Sanitize theme to one of the 4 valid options
+    if (!['light', 'dark', 'love', 'dream'].includes(loaded.theme)) {
+      loaded.theme = 'dark';
+    }
+    return loaded;
+  });
 
-  // 3. Active View Tab
+  // 3. Active Tab
   const [activeTab, setActiveTab] = useState<TabType>('me');
 
   // 4. Modals State
@@ -95,10 +102,31 @@ export default function App() {
   const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false);
   const [isAddMemoryOpen, setIsAddMemoryOpen] = useState(false);
 
-  // 5. Live incoming sync banner
+  // 5. Live incoming sync banner & celebration stop controller
   const [liveSyncToast, setLiveSyncToast] = useState<string | null>(null);
+  const [isCelebrationPlaying, setIsCelebrationPlaying] = useState<boolean>(false);
 
-  // Derived user roles: 'creator' vs 'partner'
+  const safeTriggerCelebration = () => {
+    const isFxEnabled = typeof settings.celebrationFx === 'boolean'
+      ? settings.celebrationFx
+      : (settings.celebrationFx as any) !== 'none' && (settings.celebrationFx as any) !== 'no';
+
+    if (!isFxEnabled) {
+      stopCelebration();
+      return;
+    }
+
+    triggerCelebration(true);
+    setIsCelebrationPlaying(true);
+    setTimeout(() => setIsCelebrationPlaying(false), 2000);
+  };
+
+  const handleStopCelebration = () => {
+    stopCelebration();
+    setIsCelebrationPlaying(false);
+  };
+
+  // Derived user roles
   const userRole: 'creator' | 'partner' = authSession.userRole || 'creator';
   const myUserId = userRole;
   const partnerUserId: 'creator' | 'partner' = userRole === 'creator' ? 'partner' : 'creator';
@@ -106,7 +134,7 @@ export default function App() {
   const userMe = users[myUserId] || INITIAL_USERS[myUserId];
   const userPartner = users[partnerUserId] || INITIAL_USERS[partnerUserId];
 
-  const currentTheme = THEMES[settings.theme] || THEMES.cosmic;
+  const currentTheme = THEMES[settings.theme] || THEMES.dark;
 
   // Filter tasks cleanly by ownerId
   const myTasks = tasks.filter((t) => t.ownerId === myUserId);
@@ -128,7 +156,7 @@ export default function App() {
             if (!prev.isPaired || prev.partnerName !== pName) {
               setLiveSyncToast(`Paired with ${pName} on their phone! 💕`);
               sounds.playHeartCheer(settings.soundAndHaptics);
-              triggerCelebration('hearts');
+              safeTriggerCelebration();
               setTimeout(() => setLiveSyncToast(null), 3500);
               return { ...prev, isPaired: true, partnerName: pName };
             }
@@ -154,7 +182,7 @@ export default function App() {
           }));
         }
 
-        // 2. Sync partner's tasks & shared tasks without duplicate accumulation
+        // 2. Sync partner's tasks & shared tasks
         if (serverState) {
           const serverPartnerTasks: TaskItem[] =
             userRole === 'creator'
@@ -165,7 +193,6 @@ export default function App() {
 
           setTasks((prev) => {
             const currentMyTasks = prev.filter((t) => t.ownerId === myUserId);
-            // Recombine with updated partner & shared tasks
             return [...currentMyTasks, ...serverPartnerTasks, ...serverSharedTasks];
           });
         }
@@ -204,16 +231,14 @@ export default function App() {
       },
       (reactionType, senderName) => {
         if (reactionType === 'cheer') {
-          triggerCelebration(settings.celebrationFx);
           sounds.playSuccess(settings.soundAndHaptics);
-          setLiveSyncToast(`${senderName} cheered you on from their phone! 🎉`);
+          setLiveSyncToast(`${senderName} cheered you on! 🎉`);
         } else if (reactionType === 'love') {
-          triggerCelebration('hearts');
           sounds.playHeartCheer(settings.soundAndHaptics);
-          setLiveSyncToast(`${senderName} sent you hearts from their phone! 💖`);
+          setLiveSyncToast(`${senderName} sent you hearts! 💖`);
         } else if (reactionType === 'nudge') {
           sounds.playPop(settings.soundAndHaptics);
-          setLiveSyncToast(`${senderName} nudged you from their phone! ⚡`);
+          setLiveSyncToast(`${senderName} nudged you! ⚡`);
         }
         setTimeout(() => setLiveSyncToast(null), 3500);
       }
@@ -222,9 +247,9 @@ export default function App() {
     return () => {
       syncService.stop();
     };
-  }, [authSession.isLoggedIn, authSession.myPairingCode, userRole, myUserId, settings.celebrationFx, settings.soundAndHaptics]);
+  }, [authSession.isLoggedIn, authSession.myPairingCode, userRole, myUserId, settings.soundAndHaptics]);
 
-  // Sync to local storage on updates (persists info even after closing the app)
+  // Sync to local storage on updates
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.AUTH_SESSION, authSession);
   }, [authSession]);
@@ -257,56 +282,170 @@ export default function App() {
     saveToStorage(STORAGE_KEYS.SETTINGS, settings);
   }, [settings]);
 
-  // Grow tree helper
+  // Midnight Rollover, Streak Check & Daily Reset
+  useEffect(() => {
+    const handleMidnightCheck = () => {
+      const today = new Date().toISOString().split('T')[0];
+      const lastActiveDate = localStorage.getItem('duo_last_active_date');
+
+      if (!lastActiveDate) {
+        localStorage.setItem('duo_last_active_date', today);
+        return;
+      }
+
+      if (lastActiveDate !== today) {
+        // Midnight has passed!
+        const myActiveTasks = tasks.filter((t) => t.ownerId === myUserId);
+        const partnerActiveTasks = tasks.filter((t) => t.ownerId === partnerUserId);
+
+        const myAllDone = myActiveTasks.length > 0 && myActiveTasks.every((t) => t.completed);
+        const partnerAllDone = partnerActiveTasks.length > 0 && partnerActiveTasks.every((t) => t.completed);
+
+        const bothCompleted = myAllDone && partnerAllDone;
+
+        if (bothCompleted) {
+          // Increment streak for both partners
+          setUsers((prev) => ({
+            ...prev,
+            creator: {
+              ...prev.creator,
+              streakDays: (prev.creator.streakDays || 1) + 1,
+              focusMinutesToday: 0,
+            },
+            partner: {
+              ...prev.partner,
+              streakDays: (prev.partner.streakDays || 1) + 1,
+              focusMinutesToday: 0,
+            },
+          }));
+          addTreePoints(30);
+          setLiveSyncToast(`🔥 Midnight Streak Progressed! You both completed all tasks yesterday!`);
+        } else {
+          // Either partner missed a task -> Tree withers and resets to lower level by 2 lvls
+          setTree((prev) => {
+            const newLvl = Math.max(1, prev.level - 2);
+            const speciesInfo = getTreeSpeciesInfo(newLvl);
+            const witheredTree: TreeState = {
+              ...prev,
+              level: newLvl,
+              points: 0,
+              maxPoints: newLvl * 40 + 60,
+              stageName: speciesInfo.stageName,
+              species: speciesInfo.species,
+              tier: speciesInfo.tier,
+              isWithered: true,
+              witherReason: 'A daily task was missed yesterday. Complete today\'s tasks together to revive it!',
+            };
+            syncService.pushUpdate({ userRole, shared: { tree: witheredTree } });
+            return witheredTree;
+          });
+
+          // Reset streak to 1
+          setUsers((prev) => ({
+            ...prev,
+            creator: {
+              ...prev.creator,
+              streakDays: 1,
+              focusMinutesToday: 0,
+            },
+            partner: {
+              ...prev.partner,
+              streakDays: 1,
+              focusMinutesToday: 0,
+            },
+          }));
+          setLiveSyncToast(`🍂 Midnight Notice: Tree dropped 2 levels due to missed tasks. Complete today's tasks together to revive it!`);
+        }
+
+        // Reset tasks' completion state for the new day
+        setTasks((prev) => {
+          const resetList = prev.map((t) => ({ ...t, completed: false }));
+          syncService.pushUpdate({
+            userRole,
+            userState: { tasks: resetList.filter((t) => t.ownerId === myUserId) },
+            shared: { sharedTasks: resetList.filter((t) => t.ownerId === 'shared') },
+          });
+          return resetList;
+        });
+
+        localStorage.setItem('duo_last_active_date', today);
+        setTimeout(() => setLiveSyncToast(null), 5000);
+      }
+    };
+
+    handleMidnightCheck();
+    const interval = setInterval(handleMidnightCheck, 30000);
+    return () => clearInterval(interval);
+  }, [tasks, myUserId, partnerUserId, userRole]);
+
+  // Points awarded to Love Tree when tasks are completed
   const addTreePoints = (pointsToAdd: number) => {
     setTree((prev) => {
-      const newPts = prev.points + pointsToAdd;
-      if (newPts >= prev.maxPoints) {
+      const newPts = Math.max(0, prev.points + pointsToAdd);
+      const maxPts = prev.maxPoints || (prev.level * 40 + 60);
+
+      if (newPts >= maxPts) {
+        const newLevel = prev.level + 1;
+        const speciesInfo = getTreeSpeciesInfo(newLevel);
+
+        // RARE CELEBRATION FX on tree level-up!
+        safeTriggerCelebration();
+        sounds.playSuccess(settings.soundAndHaptics);
+        setLiveSyncToast(`🌳 Tree reached Level ${newLevel}! Evolved into ${speciesInfo.species}!`);
+        setTimeout(() => setLiveSyncToast(null), 4000);
+
         const nextTree: TreeState = {
           ...prev,
-          level: prev.level + 1,
-          points: newPts - prev.maxPoints,
-          stageName: `Level ${prev.level + 1} Cherry Blossom Tree 🌸`,
+          level: newLevel,
+          points: newPts - maxPts,
+          maxPoints: newLevel * 40 + 60,
+          stageName: speciesInfo.stageName,
+          species: speciesInfo.species,
+          tier: speciesInfo.tier,
+          isWithered: false,
         };
         syncService.pushUpdate({ userRole, shared: { tree: nextTree } });
         return nextTree;
       }
+
       const nextTree: TreeState = {
         ...prev,
         points: newPts,
+        isWithered: false, // Completing tasks revives the tree!
       };
       syncService.pushUpdate({ userRole, shared: { tree: nextTree } });
       return nextTree;
     });
   };
 
-  // Tree watering action
-  const handleWaterTree = () => {
-    sounds.playPop(settings.soundAndHaptics);
-    addTreePoints(10);
-    setTree((prev) => {
-      const updated = {
-        ...prev,
-        waterCountToday: prev.waterCountToday + 1,
-      };
-      syncService.pushUpdate({ userRole, shared: { tree: updated } });
-      return updated;
-    });
-  };
-
   // Task actions
   const handleToggleTask = (taskId: string) => {
     setTasks((prev) => {
+      let nowChecked = false;
       const nextTasks = prev.map((t) => {
         if (t.id === taskId) {
-          const nextCompleted = !t.completed;
-          if (nextCompleted) {
-            addTreePoints(5);
-          }
-          return { ...t, completed: nextCompleted };
+          nowChecked = !t.completed;
+          return { ...t, completed: nowChecked };
         }
         return t;
       });
+
+      // Award points when completed, deduct if uncompleted
+      if (nowChecked) {
+        addTreePoints(15);
+      } else {
+        addTreePoints(-15);
+      }
+
+      // Check if ALL daily tasks are completed by both -> trigger rare celebration
+      const allDone = nextTasks.length > 0 && nextTasks.every((t) => t.completed);
+      if (allDone && nowChecked) {
+        safeTriggerCelebration();
+        sounds.playHeartCheer(settings.soundAndHaptics);
+        setLiveSyncToast(`🎉 All couple tasks completed for today! Awesome synergy!`);
+        setTimeout(() => setLiveSyncToast(null), 4000);
+      }
+
       syncService.pushUpdate({
         userRole,
         userState: { tasks: nextTasks.filter((t) => t.ownerId === myUserId) },
@@ -348,22 +487,63 @@ export default function App() {
     });
   };
 
-  // Focus completion
-  const handleFocusComplete = (minutes: number) => {
-    addTreePoints(15);
+  // Focus and Relax mode toggle
+  const handleToggleStatusMode = (mode: FocusModeStatus) => {
     setUsers((prev) => {
-      const updatedUser = {
+      const updatedUser: UserProfile = {
         ...prev[myUserId],
-        focusMinutesToday: prev[myUserId].focusMinutesToday + minutes,
+        statusMode: mode,
+        isDeepWork: mode === 'focus',
+        statusText: mode === 'focus' ? '🎯 In Deep Focus' : '🍃 Relaxing',
       };
-      const updated = {
-        ...prev,
-        [myUserId]: updatedUser,
-      };
+      const updated = { ...prev, [myUserId]: updatedUser };
       syncService.pushUpdate({ userRole, userState: updatedUser });
       return updated;
     });
-    triggerCelebration(settings.celebrationFx);
+  };
+
+  // Cumulative focus time accumulation (resets at midnight)
+  const handleAccumulateFocusTime = (seconds: number) => {
+    setUsers((prev) => {
+      const currentSecs = (prev[myUserId].focusSecondsToday || 0) + seconds;
+      const addedMinutes = Math.floor(currentSecs / 60);
+      const remainingSecs = currentSecs % 60;
+
+      if (addedMinutes > 0) {
+        const updatedUser: UserProfile = {
+          ...prev[myUserId],
+          focusMinutesToday: (prev[myUserId].focusMinutesToday || 0) + addedMinutes,
+          focusSecondsToday: remainingSecs,
+        };
+        syncService.pushUpdate({ userRole, userState: updatedUser });
+        return { ...prev, [myUserId]: updatedUser };
+      } else {
+        return {
+          ...prev,
+          [myUserId]: {
+            ...prev[myUserId],
+            focusSecondsToday: currentSecs,
+          },
+        };
+      }
+    });
+  };
+
+  // Focus completion handler
+  const handleFocusComplete = (minutes: number) => {
+    addTreePoints(20);
+    setUsers((prev) => {
+      const updatedUser: UserProfile = {
+        ...prev[myUserId],
+        focusMinutesToday: (prev[myUserId].focusMinutesToday || 0) + minutes,
+        statusMode: 'relax',
+        isDeepWork: false,
+        statusText: '🍃 Relaxing after focus session',
+      };
+      const updated = { ...prev, [myUserId]: updatedUser };
+      syncService.pushUpdate({ userRole, userState: updatedUser });
+      return updated;
+    });
   };
 
   // Goal actions
@@ -379,7 +559,6 @@ export default function App() {
       return next;
     });
     sounds.playSuccess(settings.soundAndHaptics);
-    triggerCelebration(settings.celebrationFx);
   };
 
   const handleUpdateGoalProgress = (goalId: string, delta: number) => {
@@ -389,8 +568,8 @@ export default function App() {
           const nextAmt = Math.min(g.targetAmount, Math.max(0, g.currentAmount + delta));
           const isNowCompleted = nextAmt >= g.targetAmount;
           if (isNowCompleted && !g.completed) {
-            triggerCelebration(settings.celebrationFx);
-            addTreePoints(25);
+            safeTriggerCelebration();
+            addTreePoints(30);
           }
           return {
             ...g,
@@ -411,7 +590,8 @@ export default function App() {
         if (g.id === goalId) {
           const nextCompleted = !g.completed;
           if (nextCompleted) {
-            addTreePoints(25);
+            addTreePoints(30);
+            safeTriggerCelebration();
           }
           return {
             ...g,
@@ -439,7 +619,6 @@ export default function App() {
       return next;
     });
     sounds.playSuccess(settings.soundAndHaptics);
-    triggerCelebration(settings.celebrationFx);
   };
 
   // Memory actions
@@ -456,7 +635,6 @@ export default function App() {
       return next;
     });
     sounds.playHeartCheer(settings.soundAndHaptics);
-    triggerCelebration('hearts');
   };
 
   const handleLikeMemory = (memoryId: string) => {
@@ -488,17 +666,16 @@ export default function App() {
     });
   };
 
-  // Partner interactions with real cross-device server push
+  // Partner interactions
   const handleSendPartnerReaction = (type: 'cheer' | 'nudge' | 'love') => {
     if (type === 'cheer') {
-      triggerCelebration(settings.celebrationFx);
+      sounds.playSuccess(settings.soundAndHaptics);
     } else if (type === 'nudge') {
       sounds.playPop(settings.soundAndHaptics);
     } else if (type === 'love') {
-      triggerCelebration('hearts');
+      sounds.playHeartCheer(settings.soundAndHaptics);
     }
 
-    // Push to server so partner on another phone receives the cheer/nudge/love!
     syncService.pushUpdate({
       userRole,
       reaction: { type, senderName: userMe.name },
@@ -513,45 +690,7 @@ export default function App() {
     }
   };
 
-  // Export / Backup
-  const handleExportData = () => {
-    const backup = {
-      authSession,
-      users,
-      tasks,
-      goals,
-      milestones,
-      memories,
-      tree,
-      settings,
-      version: '1.2.0',
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `duo_couple_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportData = (jsonStr: string) => {
-    try {
-      const data = JSON.parse(jsonStr);
-      if (data.authSession) setAuthSession(data.authSession);
-      if (data.users) setUsers(data.users);
-      if (data.tasks) setTasks(data.tasks);
-      if (data.goals) setGoals(data.goals);
-      if (data.milestones) setMilestones(data.milestones);
-      if (data.memories) setMemories(data.memories);
-      if (data.tree) setTree(data.tree);
-      if (data.settings) setSettings(data.settings);
-      alert('Couple data restored successfully! 💖');
-    } catch {
-      alert('Invalid backup file. Please select a valid Duo JSON backup.');
-    }
-  };
-
+  // Reset Data action
   const handleResetData = () => {
     clearAllData();
     setUsers(INITIAL_USERS);
@@ -564,9 +703,50 @@ export default function App() {
     setAuthSession(INITIAL_AUTH_SESSION);
   };
 
-  // Theme cycler for top sun/moon button
+  // Export / Backup
+  const handleExportData = () => {
+    const backup = {
+      authSession,
+      users,
+      tasks,
+      goals,
+      milestones,
+      memories,
+      tree,
+      settings,
+    };
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `duo_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    sounds.playSuccess(settings.soundAndHaptics);
+  };
+
+  // Import / Restore
+  const handleImportData = (jsonStr: string) => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed.users) setUsers(parsed.users);
+      if (parsed.tasks) setTasks(parsed.tasks);
+      if (parsed.goals) setGoals(parsed.goals);
+      if (parsed.milestones) setMilestones(parsed.milestones);
+      if (parsed.memories) setMemories(parsed.memories);
+      if (parsed.tree) setTree(parsed.tree);
+      if (parsed.settings) setSettings(parsed.settings);
+      if (parsed.authSession) setAuthSession(parsed.authSession);
+      sounds.playSuccess(settings.soundAndHaptics);
+      alert('Backup restored successfully!');
+    } catch {
+      alert('Invalid backup file. Please select a valid Duo JSON backup.');
+    }
+  };
+
+  // Theme cycler for 4 options: light, dark, love, dream
   const handleToggleTheme = () => {
-    const themeKeys: ThemeMode[] = ['cosmic', 'lovey', 'warm', 'oled', 'lavender'];
+    const themeKeys: ThemeMode[] = ['light', 'dark', 'love', 'dream'];
     const currentIndex = themeKeys.indexOf(settings.theme);
     const nextTheme = themeKeys[(currentIndex + 1) % themeKeys.length];
     setSettings((prev) => ({ ...prev, theme: nextTheme }));
@@ -595,7 +775,6 @@ export default function App() {
           const role = newUserRole || 'creator';
           const partnerRole = role === 'creator' ? 'partner' : 'creator';
 
-          // Update user details cleanly
           setUsers({
             [role]: {
               id: role,
@@ -605,7 +784,8 @@ export default function App() {
               age: '',
               gender: '',
               streakDays: user.streakDays || 1,
-              statusText: user.statusText || 'Connected & in love',
+              statusText: user.statusText || 'Connected & ready',
+              statusMode: 'relax',
               isDeepWork: false,
               focusMinutesToday: 0,
             },
@@ -618,6 +798,7 @@ export default function App() {
               gender: '',
               streakDays: partner.streakDays || 1,
               statusText: partner.statusText || (isPaired ? 'Paired & online' : 'Waiting for partner'),
+              statusMode: 'relax',
               isDeepWork: false,
               focusMinutesToday: 0,
             },
@@ -629,7 +810,6 @@ export default function App() {
             togetherSince: togetherSince || prev.togetherSince,
           }));
 
-          // Hydrate with REAL server data (ZERO DUMMY DATA)
           setTasks(serverSharedTasks || []);
           setGoals(serverGoals || []);
           setMilestones(serverMilestones || []);
@@ -647,7 +827,7 @@ export default function App() {
             connectedAt: new Date().toISOString(),
           });
 
-          triggerCelebration('confetti');
+          safeTriggerCelebration();
           sounds.playSuccess(true);
         }}
         onExploreDemo={() => {
@@ -664,14 +844,13 @@ export default function App() {
             partnerName: 'Maya',
             connectedAt: new Date().toISOString(),
           });
-          triggerCelebration('confetti');
+          safeTriggerCelebration();
           sounds.playSuccess(true);
         }}
       />
     );
   }
 
-  // IF LOGGED IN: RENDER COMPLETE APP
   return (
     <PhoneFrame
       themeConfig={currentTheme}
@@ -689,6 +868,21 @@ export default function App() {
         </div>
       )}
 
+      {/* Instant Stop Celebration Button when FX is playing */}
+      {isCelebrationPlaying && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            type="button"
+            onClick={handleStopCelebration}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/95 hover:bg-slate-900 text-rose-300 text-[11px] font-bold border border-rose-500/40 shadow-2xl backdrop-blur-md cursor-pointer transition-all active:scale-95"
+            title="Stop current celebration animation"
+          >
+            <span>Stop FX</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-rose-500/30 text-rose-200 flex items-center justify-center text-[10px]">✕</span>
+          </button>
+        </div>
+      )}
+
       {/* Tab 1: Me */}
       {activeTab === 'me' && (
         <MeTab
@@ -698,6 +892,8 @@ export default function App() {
           onAddTask={(title) => handleAddTask(title, myUserId)}
           onDeleteTask={handleDeleteTask}
           onFocusComplete={handleFocusComplete}
+          onToggleStatusMode={handleToggleStatusMode}
+          onAccumulateFocusTime={handleAccumulateFocusTime}
           soundEnabled={settings.soundAndHaptics}
           accentColor={currentTheme.accentColor}
         />
@@ -712,7 +908,6 @@ export default function App() {
           myTasks={myTasks}
           partnerTasks={partnerTasks}
           tree={tree}
-          onWaterTree={handleWaterTree}
           onToggleSharedTask={handleToggleTask}
           onAddSharedTask={(title) => handleAddTask(title, 'shared')}
           onDeleteSharedTask={handleDeleteTask}
@@ -721,7 +916,7 @@ export default function App() {
         />
       )}
 
-      {/* Tab 3: Couple Goals, Interactive Charts & Milestones */}
+      {/* Tab 3: Couple Goals, Charts & Milestones */}
       {activeTab === 'charts' && (
         <MilestonesChartsTab
           goals={goals}

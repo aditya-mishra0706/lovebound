@@ -1,5 +1,20 @@
-export type ThemeMode = 'cosmic' | 'lovey' | 'warm' | 'oled' | 'lavender';
-export type CelebrationEffect = 'confetti' | 'hearts' | 'fireworks' | 'sparkles';
+export type ThemeMode = 'light' | 'dark' | 'love' | 'dream';
+export type CelebrationEffect = boolean;
+export type FocusModeStatus = 'focus' | 'relax';
+
+export interface DailySynergyRecord {
+  date: string;
+  dayLabel: string;
+  me: number;
+  partner: number;
+  combined: number;
+  meTasksDone: number;
+  meTasksTotal: number;
+  partnerTasksDone: number;
+  partnerTasksTotal: number;
+  isToday: boolean;
+  isActiveDay: boolean;
+}
 
 export interface UserProfile {
   id: string; // 'creator' | 'partner'
@@ -10,8 +25,10 @@ export interface UserProfile {
   gender: string;
   streakDays: number;
   statusText: string;
+  statusMode?: FocusModeStatus; // 'focus' | 'relax'
   isDeepWork: boolean;
   focusMinutesToday: number;
+  focusSecondsToday?: number;
 }
 
 export interface TaskItem {
@@ -68,7 +85,11 @@ export interface TreeState {
   points: number;
   maxPoints: number;
   stageName: string;
-  waterCountToday: number;
+  species?: string;
+  tier?: string;
+  isWithered?: boolean;
+  witherReason?: string;
+  waterCountToday?: number;
 }
 
 export interface AuthSession {

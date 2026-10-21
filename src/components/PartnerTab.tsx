@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Coffee, Zap, Heart, PartyPopper, Check, Sparkles, Send } from 'lucide-react';
+import { Coffee, Zap, Heart, PartyPopper, Check, Sparkles, Target } from 'lucide-react';
 import { TaskItem, UserProfile } from '../types';
-import { triggerCelebration } from '../utils/confetti';
 import { sounds } from '../utils/audio';
 
 interface PartnerTabProps {
@@ -17,7 +16,6 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
   partner,
   tasks,
   soundEnabled,
-  accentColor,
   onSendReaction,
 }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -26,6 +24,8 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
   const completedCount = tasks.filter((t) => t.completed).length;
   const leftCount = tasks.filter((t) => !t.completed).length;
   const goalPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  const isPartnerInFocus = partner.statusMode === 'focus' || partner.isDeepWork;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -36,24 +36,22 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
 
   const handleSendCheer = () => {
     setIsSendingCheer(true);
-    triggerCelebration('confetti');
     sounds.playHeartCheer(soundEnabled);
     showToast(`You cheered on ${partner.name}! 🎉`);
-    onSendReaction('cheer', `Sent cheering energy to ${partner.name}!`);
+    onSendReaction('cheer', `Cheering you on! 🎉`);
     setTimeout(() => setIsSendingCheer(false), 500);
   };
 
   const handleSendNudge = () => {
     sounds.playPop(soundEnabled);
     showToast(`Gentle nudge sent to ${partner.name} ⚡`);
-    onSendReaction('nudge', `Nudged ${partner.name} lovingly!`);
+    onSendReaction('nudge', `Thinking of you! ⚡`);
   };
 
   const handleSendLove = () => {
-    triggerCelebration('hearts');
     sounds.playHeartCheer(soundEnabled);
     showToast(`Love hearts sent to ${partner.name} 💕`);
-    onSendReaction('love', `Sent a wave of love hearts to ${partner.name}`);
+    onSendReaction('love', `Sent you love 💕`);
   };
 
   return (
@@ -73,68 +71,112 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Partner Profile Card (Matches Screenshot 3) */}
-      <div className="relative rounded-3xl p-5 bg-[#2b1816]/90 border border-[#482823] shadow-xl overflow-hidden backdrop-blur-md">
+      {/* Partner Profile Card */}
+      <div className="relative rounded-3xl p-5 theme-card border theme-border shadow-xl overflow-hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            {/* Avatar with status dot */}
+            {/* Avatar with status indicator */}
             <div className="relative">
-              <div className="w-14 h-14 rounded-2xl bg-[#3f211c] border border-[#5d322b] flex items-center justify-center text-3xl shadow-inner">
+              <div className="w-14 h-14 rounded-2xl theme-card-subtle border theme-border flex items-center justify-center text-3xl shadow-inner">
                 {partner.avatar}
               </div>
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#2b1816]" />
+              <span
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 theme-card ${
+                  isPartnerInFocus
+                    ? 'bg-purple-500 animate-pulse'
+                    : 'bg-emerald-500'
+                }`}
+                title={isPartnerInFocus ? 'In Deep Focus' : 'Relaxing'}
+              />
             </div>
 
             <div>
-              <h2 className="text-xl font-extrabold text-white tracking-tight">
-                {partner.name}
-              </h2>
-              <p className="text-xs text-rose-200/80 font-medium mt-0.5">
-                {partner.statusText}
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-extrabold theme-text tracking-tight">
+                  {partner.name}
+                </h2>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    isPartnerInFocus
+                      ? 'bg-purple-950/40 text-purple-300 border-purple-500/40'
+                      : 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40'
+                  }`}
+                >
+                  {isPartnerInFocus ? '🎯 In Focus' : '🍃 Relaxing'}
+                </span>
+              </div>
+              <p className="text-xs theme-text-muted font-medium mt-0.5">
+                {partner.statusText || (isPartnerInFocus ? 'In deep focus mode' : 'Available & relaxed')}
               </p>
             </div>
           </div>
 
-          {/* Goal progress circle badge (100% in red ring) */}
-          <div className="w-14 h-14 rounded-full border-4 border-rose-500/80 flex items-center justify-center bg-[#3a1d17] shadow-lg shadow-rose-900/40">
-            <span className="text-xs font-black text-rose-100">{goalPercent}%</span>
+          {/* Goal progress circle badge */}
+          <div className="w-14 h-14 rounded-full border-4 border-rose-500/80 flex items-center justify-center theme-card-subtle shadow-md">
+            <span className="text-xs font-black theme-text">{goalPercent}%</span>
           </div>
         </div>
 
-        {/* Focus session card inside */}
-        {partner.isDeepWork && (
-          <div className="mt-4 p-3 rounded-2xl bg-[#3a201c] border border-[#522d26] flex items-center gap-2.5 text-xs text-amber-200">
-            <Coffee className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="font-medium">Focus session in progress</span>
+        {/* Live Focus or Relax Status Banner */}
+        <div className="mt-4 p-3 rounded-2xl theme-card-subtle border theme-border flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2.5">
+            {isPartnerInFocus ? (
+              <>
+                <Target className="w-4 h-4 text-purple-400 shrink-0 animate-spin" />
+                <div>
+                  <span className="font-bold theme-text block">Focus Mode Active 🎯</span>
+                  <span className="text-[11px] theme-text-muted">
+                    {partner.name} is in deep concentration.
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <Coffee className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-bold theme-text block">Relax Mode 🍃</span>
+                  <span className="text-[11px] theme-text-muted">
+                    {partner.name} is relaxing or taking a break.
+                  </span>
+                </div>
+              </>
+            )}
           </div>
-        )}
+
+          <div className="text-right">
+            <span className="text-[10px] theme-text-muted block font-semibold">Today's Focus</span>
+            <span className="font-extrabold text-sm text-purple-500 font-mono">
+              {partner.focusMinutesToday || 0}m
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* 3 Stat Boxes (Matches Screenshot 3: DONE, LEFT, GOAL) */}
+      {/* 3 Stat Boxes: DONE, LEFT, GOAL */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl p-4 bg-[#151728] border border-[#262a4d] text-center shadow-md">
-          <div className="text-2xl font-black text-cyan-400">{completedCount}</div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+        <div className="rounded-2xl p-4 theme-card border theme-border text-center shadow-md">
+          <div className="text-2xl font-black text-cyan-500">{completedCount}</div>
+          <div className="text-[10px] font-bold theme-text-muted uppercase tracking-wider mt-0.5">
             DONE
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 bg-[#151728] border border-[#262a4d] text-center shadow-md">
-          <div className="text-2xl font-black text-rose-400">{leftCount}</div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+        <div className="rounded-2xl p-4 theme-card border theme-border text-center shadow-md">
+          <div className="text-2xl font-black text-rose-500">{leftCount}</div>
+          <div className="text-[10px] font-bold theme-text-muted uppercase tracking-wider mt-0.5">
             LEFT
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 bg-[#151728] border border-[#262a4d] text-center shadow-md">
-          <div className="text-2xl font-black text-purple-400">{goalPercent}%</div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+        <div className="rounded-2xl p-4 theme-card border theme-border text-center shadow-md">
+          <div className="text-2xl font-black text-purple-500">{goalPercent}%</div>
+          <div className="text-[10px] font-bold theme-text-muted uppercase tracking-wider mt-0.5">
             GOAL
           </div>
         </div>
       </div>
 
-      {/* Action Buttons: Send Cheer, Nudge, Send Love (Matches Screenshot 3) */}
+      {/* Action Buttons: Send Cheer, Nudge, Send Love */}
       <div className="flex items-center gap-2.5">
         <button
           onClick={handleSendCheer}
@@ -147,24 +189,24 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
 
         <button
           onClick={handleSendNudge}
-          className="p-3 rounded-2xl bg-[#1b1e36] hover:bg-[#252a4d] text-amber-400 border border-[#2e345e] transition-all active:scale-95 cursor-pointer shadow-md"
+          className="p-3 rounded-2xl theme-card-subtle text-amber-500 border theme-border transition-all active:scale-95 cursor-pointer shadow-md hover:opacity-80"
           title="Send gentle nudge"
         >
-          <Zap className="w-4 h-4 fill-amber-400" />
+          <Zap className="w-4 h-4 fill-amber-500" />
         </button>
 
         <button
           onClick={handleSendLove}
-          className="p-3 rounded-2xl bg-[#1b1e36] hover:bg-[#252a4d] text-rose-400 border border-[#2e345e] transition-all active:scale-95 cursor-pointer shadow-md"
+          className="p-3 rounded-2xl theme-card-subtle text-rose-500 border theme-border transition-all active:scale-95 cursor-pointer shadow-md hover:opacity-80"
           title="Send heart love"
         >
           <Heart className="w-4 h-4 fill-rose-500" />
         </button>
       </div>
 
-      {/* PARTNER'S TASKS (Matches Screenshot 3: DJIWDJ'S TASKS) */}
+      {/* PARTNER'S TASKS */}
       <div className="space-y-3 pt-2">
-        <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+        <span className="text-xs font-bold tracking-wider theme-text-muted uppercase">
           {partner.name.toUpperCase()}'S TASKS
         </span>
 
@@ -172,14 +214,14 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
           {tasks.map((task) => (
             <div
               key={task.id}
-              className="flex items-center justify-between p-3.5 rounded-2xl bg-[#151728] border border-[#24284b]"
+              className="flex items-center justify-between p-3.5 rounded-2xl theme-card border theme-border"
             >
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center ${
                     task.completed
-                      ? 'bg-teal-400 text-slate-950 shadow-sm shadow-teal-400/40'
-                      : 'border-2 border-slate-600 bg-transparent'
+                      ? 'bg-teal-500 text-white shadow-sm'
+                      : 'border-2 theme-border bg-transparent'
                   }`}
                 >
                   {task.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -188,8 +230,8 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
                 <span
                   className={`text-sm font-semibold truncate ${
                     task.completed
-                      ? 'line-through text-slate-400 font-normal'
-                      : 'text-slate-100'
+                      ? 'line-through theme-text-muted font-normal'
+                      : 'theme-text'
                   }`}
                 >
                   {task.title}
@@ -199,7 +241,7 @@ export const PartnerTab: React.FC<PartnerTabProps> = ({
           ))}
 
           {tasks.length === 0 && (
-            <div className="text-center py-6 text-xs text-slate-400">
+            <div className="text-center py-6 text-xs theme-card-subtle rounded-2xl border theme-border theme-text-muted">
               No tasks currently listed for {partner.name}.
             </div>
           )}

@@ -7,15 +7,13 @@ import {
   Calendar, 
   Lock, 
   Unlock, 
-  Eye, 
   Sparkles, 
   Image as ImageIcon,
-  Share2,
   Trash2,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { PhotoMemory } from '../types';
-import { triggerCelebration } from '../utils/confetti';
 import { sounds } from '../utils/audio';
 
 interface MemoriesTabProps {
@@ -38,6 +36,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
   const [selectedMemory, setSelectedMemory] = useState<PhotoMemory | null>(null);
   const [revealedNotes, setRevealedNotes] = useState<Record<string, boolean>>({});
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const toggleRevealNote = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,7 +51,33 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
     e.stopPropagation();
     onLikeMemory(id);
     sounds.playHeartCheer(soundEnabled);
-    triggerCelebration('hearts');
+  };
+
+  const handleDownloadPhoto = async (imageUrl: string, title: string, id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDownloadingId(id);
+    try {
+      const filename = `${(title || 'couple-memory').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`;
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      sounds.playSuccess(soundEnabled);
+    } catch {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `${title || 'couple-memory'}.jpg`;
+      link.target = '_blank';
+      link.click();
+    } finally {
+      setTimeout(() => setDownloadingId(null), 800);
+    }
   };
 
   // Collect all unique tags
@@ -77,7 +102,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
               Our Photo Memories
             </h3>
             <p className="text-xs text-rose-200/80 mt-1">
-              Encrypted intimate moments, love notes, and milestones
+              Encrypted intimate moments, love notes, and downloadable photos
             </p>
           </div>
 
@@ -103,7 +128,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === tag
                 ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-                : 'bg-[#181a2e] text-slate-400 hover:text-slate-200 border border-[#262a4d]'
+                : 'theme-card-subtle theme-text-muted hover:theme-text border theme-border'
             }`}
           >
             {tag === 'all' ? 'All Memories' : `#${tag}`}
@@ -122,7 +147,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
               key={mem.id}
               layout
               onClick={() => setSelectedMemory(mem)}
-              className="group rounded-3xl bg-[#151728] border border-[#262a4d] overflow-hidden shadow-lg hover:border-pink-500/40 transition-all cursor-pointer"
+              className="group rounded-3xl theme-card border theme-border overflow-hidden shadow-lg hover:border-pink-500/40 transition-all cursor-pointer"
             >
               {/* Photo Frame */}
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-900">
@@ -133,8 +158,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                   loading="lazy"
                 />
 
-                {/* Gradient vignette */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#151728] via-transparent to-black/30 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
 
                 {/* Date & Location Overlay */}
                 <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[11px] font-medium text-white border border-white/10">
@@ -146,6 +170,17 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                   <MapPin className="w-3 h-3 text-amber-400" />
                   <span>{mem.location}</span>
                 </div>
+
+                {/* Download photo button directly on card */}
+                <button
+                  type="button"
+                  onClick={(e) => handleDownloadPhoto(mem.imageUrl, mem.title, mem.id, e)}
+                  className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold transition-all active:scale-90 cursor-pointer shadow-md"
+                  title="Download photo"
+                >
+                  <Download className={`w-3.5 h-3.5 ${downloadingId === mem.id ? 'animate-bounce text-emerald-400' : ''}`} />
+                  <span>{downloadingId === mem.id ? 'Saved!' : 'Download'}</span>
+                </button>
 
                 {/* Cherish / Like heart button */}
                 <button
@@ -163,10 +198,10 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
 
               {/* Memory Details */}
               <div className="p-4">
-                <h4 className="text-base font-bold text-white group-hover:text-pink-300 transition-colors">
+                <h4 className="text-base font-bold theme-text group-hover:text-pink-500 transition-colors">
                   {mem.title}
                 </h4>
-                <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-xs theme-text-muted mt-1 line-clamp-2 leading-relaxed">
                   {mem.caption}
                 </p>
 
@@ -174,18 +209,18 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                 {mem.secretNote && (
                   <div
                     onClick={(e) => toggleRevealNote(mem.id, e)}
-                    className="mt-3 p-3 rounded-2xl bg-[#1d1f3b] border border-pink-500/20 hover:border-pink-500/40 transition-all cursor-pointer"
+                    className="mt-3 p-3 rounded-2xl theme-card-subtle border theme-border hover:border-pink-500/40 transition-all cursor-pointer"
                   >
-                    <div className="flex items-center justify-between text-[11px] font-bold text-pink-300">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-pink-400">
                       <span className="flex items-center gap-1.5">
                         {isNoteRevealed ? (
-                          <Unlock className="w-3.5 h-3.5 text-pink-400" />
+                          <Unlock className="w-3.5 h-3.5" />
                         ) : (
-                          <Lock className="w-3.5 h-3.5 text-pink-400" />
+                          <Lock className="w-3.5 h-3.5" />
                         )}
                         <span>{isNoteRevealed ? 'Secret Love Note Revealed 💌' : 'Locked Partner Secret Note'}</span>
                       </span>
-                      <span className="text-[10px] text-pink-400/80 font-normal">
+                      <span className="text-[10px] opacity-80 font-normal">
                         {isNoteRevealed ? 'Tap to hide' : 'Tap to reveal'}
                       </span>
                     </div>
@@ -194,7 +229,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                       <motion.p
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="text-xs text-rose-200 italic mt-2 pt-2 border-t border-pink-500/20 leading-relaxed font-serif"
+                        className="text-xs text-rose-300 italic mt-2 pt-2 border-t border-pink-500/20 leading-relaxed font-serif"
                       >
                         “{mem.secretNote}”
                       </motion.p>
@@ -202,19 +237,22 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                   </div>
                 )}
 
-                {/* Tags and Likes */}
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#232747] text-[11px]">
+                {/* Tags, Likes, and Download Action */}
+                <div className="flex items-center justify-between mt-3 pt-2 border-t theme-border text-[11px]">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {mem.tags.map((t) => (
-                      <span key={t} className="text-slate-400 font-medium">
+                      <span key={t} className="theme-text-muted font-medium">
                         #{t}
                       </span>
                     ))}
                   </div>
-                  <span className="text-rose-400 font-semibold flex items-center gap-1">
-                    <Heart className="w-3 h-3 fill-rose-500" />
-                    {mem.likesCount} loves
-                  </span>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-rose-500 font-semibold flex items-center gap-1">
+                      <Heart className="w-3 h-3 fill-rose-500" />
+                      {mem.likesCount} loves
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -223,11 +261,11 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
       </div>
 
       {memories.length === 0 && (
-        <div className="text-center py-10 px-4 rounded-3xl bg-[#151728] border border-[#262a4d] text-slate-400 space-y-2 mt-2">
+        <div className="text-center py-10 px-4 rounded-3xl theme-card border theme-border theme-text-muted space-y-2 mt-2">
           <ImageIcon className="w-10 h-10 mx-auto text-pink-400/60" />
-          <h4 className="text-sm font-bold text-white">Private Photo Memories</h4>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            Upload your first romantic selfie, date night snapshot, or travel memory to keep safely here.
+          <h4 className="text-sm font-bold theme-text">Private Photo Memories</h4>
+          <p className="text-xs theme-text-muted max-w-xs mx-auto">
+            Upload romantic selfies, date photos, or travel moments to save and download anytime.
           </p>
           <button
             onClick={onAddMemory}
@@ -239,7 +277,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
         </div>
       )}
 
-      {/* Memory Detail Modal */}
+      {/* Memory Detail Modal with Download Option */}
       <AnimatePresence>
         {selectedMemory && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -247,7 +285,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-[#151728] border border-[#2e345e] shadow-2xl p-5"
+              className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl theme-card border theme-border shadow-2xl p-5"
             >
               <button
                 onClick={() => setSelectedMemory(null)}
@@ -256,16 +294,26 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="rounded-2xl overflow-hidden aspect-[4/3] w-full bg-black">
+              <div className="rounded-2xl overflow-hidden aspect-[4/3] w-full bg-black relative group">
                 <img
                   src={selectedMemory.imageUrl}
                   alt={selectedMemory.title}
                   className="w-full h-full object-cover"
                 />
+
+                {/* Floating Download Icon inside Modal Photo */}
+                <button
+                  type="button"
+                  onClick={(e) => handleDownloadPhoto(selectedMemory.imageUrl, selectedMemory.title, selectedMemory.id, e)}
+                  className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-lg cursor-pointer transition-all active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download High-Res</span>
+                </button>
               </div>
 
               <div className="mt-4">
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs theme-text-muted">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-amber-400" />
                     {selectedMemory.location}
@@ -276,41 +324,51 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mt-2">{selectedMemory.title}</h3>
-                <p className="text-sm text-slate-300 mt-2 leading-relaxed">{selectedMemory.caption}</p>
+                <h3 className="text-xl font-bold theme-text mt-2">{selectedMemory.title}</h3>
+                <p className="text-sm theme-text-muted mt-2 leading-relaxed">{selectedMemory.caption}</p>
 
                 {selectedMemory.secretNote && (
-                  <div className="mt-4 p-4 rounded-2xl bg-rose-950/30 border border-rose-500/30">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-300 mb-1">
+                  <div className="mt-4 p-4 rounded-2xl bg-rose-950/20 border border-rose-500/30">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 mb-1">
                       <Heart className="w-3.5 h-3.5 fill-rose-400" />
                       <span>Partner Note</span>
                     </div>
-                    <p className="text-xs text-rose-100 italic font-serif leading-relaxed">
+                    <p className="text-xs text-rose-200 italic font-serif leading-relaxed">
                       “{selectedMemory.secretNote}”
                     </p>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mt-5 pt-3 border-t border-[#262a4d]">
+                <div className="flex items-center justify-between mt-5 pt-3 border-t theme-border gap-2">
                   <button
                     onClick={() => {
                       onDeleteMemory(selectedMemory.id);
                       setSelectedMemory(null);
                       sounds.playPop(soundEnabled);
                     }}
-                    className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs text-rose-500 hover:opacity-80 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Remove</span>
                   </button>
 
-                  <button
-                    onClick={(e) => handleLike(selectedMemory.id, e)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer shadow-md shadow-rose-600/30"
-                  >
-                    <Heart className="w-4 h-4 fill-white" />
-                    <span>Cherish ({selectedMemory.likesCount})</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleDownloadPhoto(selectedMemory.imageUrl, selectedMemory.title, selectedMemory.id, e)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-card-subtle theme-text border theme-border hover:opacity-80 text-xs font-bold cursor-pointer transition-all active:scale-95"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => handleLike(selectedMemory.id, e)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer shadow-md shadow-rose-600/30 transition-all active:scale-95"
+                    >
+                      <Heart className="w-4 h-4 fill-white" />
+                      <span>Cherish ({selectedMemory.likesCount})</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

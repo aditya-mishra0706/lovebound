@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Target, Calendar, DollarSign, Tag, Sparkles } from 'lucide-react';
+import { X, Target } from 'lucide-react';
 import { CoupleGoal } from '../types';
 
 interface AddGoalModalProps {
@@ -16,9 +16,6 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CoupleGoal['category']>('travel');
-  const [targetAmount, setTargetAmount] = useState<number>(1000);
-  const [currentAmount, setCurrentAmount] = useState<number>(0);
-  const [unit, setUnit] = useState('$');
   const [deadline, setDeadline] = useState('2026-12-31');
   const [notes, setNotes] = useState('');
   const [assignedTo, setAssignedTo] = useState<CoupleGoal['assignedTo']>('together');
@@ -33,9 +30,9 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
     onSave({
       title: title.trim(),
       category,
-      targetAmount: Number(targetAmount) || 1,
-      currentAmount: Number(currentAmount) || 0,
-      unit,
+      targetAmount: 1,
+      currentAmount: 0,
+      unit: 'goal',
       deadline,
       notes: notes.trim(),
       assignedTo,
@@ -58,11 +55,11 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full max-w-md rounded-3xl bg-[#151728] border border-[#2e345e] shadow-2xl p-5 overflow-hidden"
+        className="relative w-full max-w-md rounded-3xl theme-card border theme-border shadow-2xl p-5 overflow-hidden"
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-[#1e2240] text-slate-400 hover:text-white cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-full theme-card-subtle theme-text-muted hover:opacity-80 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -72,14 +69,14 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             <Target className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">Create Couple Goal</h3>
-            <p className="text-xs text-slate-400">Track a shared dream together</p>
+            <h3 className="text-base font-bold theme-text">Create Couple Goal</h3>
+            <p className="text-xs theme-text-muted">Track a shared dream together</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Goal Title
             </label>
             <input
@@ -88,13 +85,13 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Kyoto Cherry Blossom Trip, Down Payment Fund..."
-              className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-purple-400 placeholder-slate-400"
+              className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none placeholder:theme-text-muted"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+              <label className="text-[11px] font-semibold theme-text block mb-1">
                 Category
               </label>
               <select
@@ -104,7 +101,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
                   setCategory(val);
                   setIcon(CATEGORY_ICONS[val] || '🎯');
                 }}
-                className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-purple-400"
+                className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none"
               >
                 <option value="travel">✈️ Travel</option>
                 <option value="romance">💖 Romance</option>
@@ -115,13 +112,13 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+              <label className="text-[11px] font-semibold theme-text block mb-1">
                 Assigned
               </label>
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value as CoupleGoal['assignedTo'])}
-                className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-purple-400"
+                className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none"
               >
                 <option value="together">Together 👫</option>
                 <option value="me">Me 🦋</option>
@@ -130,50 +127,8 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                Target
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                Current
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={currentAmount}
-                onChange={(e) => setCurrentAmount(Number(e.target.value))}
-                className="w-full px-2.5 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                Unit
-              </label>
-              <input
-                type="text"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="$, dates, books"
-                className="w-full px-2.5 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white"
-              />
-            </div>
-          </div>
-
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Target Deadline
             </label>
             <input
@@ -181,12 +136,12 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
               required
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white"
+              className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text"
             />
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Sweet Note / Motivation
             </label>
             <textarea
@@ -194,7 +149,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Why this goal matters to us..."
-              className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white placeholder-slate-400"
+              className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text placeholder:theme-text-muted"
             />
           </div>
 
@@ -202,7 +157,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+              className="px-4 py-2 rounded-xl text-xs theme-text-muted hover:opacity-80 cursor-pointer"
             >
               Cancel
             </button>

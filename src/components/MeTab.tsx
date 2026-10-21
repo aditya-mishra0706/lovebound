@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Flame, CheckCircle, Plus, Check, MoreVertical, Trash2 } from 'lucide-react';
-import { TaskItem, UserProfile } from '../types';
+import { Flame, CheckCircle, Plus, Check, MoreVertical, Trash2, Target, Coffee } from 'lucide-react';
+import { TaskItem, UserProfile, FocusModeStatus } from '../types';
 import { FocusTimer } from './FocusTimer';
 import { sounds } from '../utils/audio';
-import { triggerCelebration } from '../utils/confetti';
 
 interface MeTabProps {
   user: UserProfile;
@@ -13,6 +12,8 @@ interface MeTabProps {
   onAddTask: (title: string) => void;
   onDeleteTask: (taskId: string) => void;
   onFocusComplete: (minutes: number) => void;
+  onToggleStatusMode?: (mode: FocusModeStatus) => void;
+  onAccumulateFocusTime?: (seconds: number) => void;
   soundEnabled: boolean;
   accentColor: string;
 }
@@ -24,6 +25,8 @@ export const MeTab: React.FC<MeTabProps> = ({
   onAddTask,
   onDeleteTask,
   onFocusComplete,
+  onToggleStatusMode,
+  onAccumulateFocusTime,
   soundEnabled,
   accentColor,
 }) => {
@@ -34,6 +37,8 @@ export const MeTab: React.FC<MeTabProps> = ({
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;
   const dailyPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const currentMode = user.statusMode || (user.isDeepWork ? 'focus' : 'relax');
 
   // Determine greeting based on current local hour
   const getGreeting = () => {
@@ -56,7 +61,6 @@ export const MeTab: React.FC<MeTabProps> = ({
     onToggleTask(taskId);
     if (!isChecked) {
       sounds.playSuccess(soundEnabled);
-      triggerCelebration('confetti');
     } else {
       sounds.playPop(soundEnabled);
     }
@@ -69,41 +73,59 @@ export const MeTab: React.FC<MeTabProps> = ({
 
   return (
     <div className="space-y-4 pb-24">
-      {/* Profile & Daily Goal Card (Matches Screenshot 1) */}
-      <div className="relative rounded-3xl p-5 bg-[#171a33]/90 border border-[#272b4f] shadow-xl overflow-hidden backdrop-blur-md">
+      {/* Profile & Daily Goal Card */}
+      <div className="relative rounded-3xl p-5 theme-card border theme-border shadow-xl overflow-hidden">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-400">
-              {getGreeting()} 👋
-            </span>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight mt-0.5">
+            <h2 className="text-2xl font-extrabold theme-text tracking-tight">
               {user.name}
             </h2>
 
-            {/* Badges as in screenshot 1: 12 day streak & 1/3 */}
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#24284b] border border-[#353b6b] text-xs font-bold text-amber-300">
-                <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span>{user.streakDays} day streak</span>
+            {/* Badges: Streak, Count, and Focus/Relax Status */}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full theme-card-subtle border theme-border text-xs font-bold text-amber-500">
+                <Flame className="w-3.5 h-3.5 fill-current" />
+                <span>{user.streakDays || 1} day streak</span>
               </div>
 
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#24284b] border border-[#353b6b] text-xs font-bold text-purple-300">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full theme-card-subtle border theme-border text-xs font-bold text-purple-500">
                 <CheckCircle className="w-3.5 h-3.5" />
                 <span>
                   {completedCount}/{totalCount}
                 </span>
               </div>
+
+              <div
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${
+                  currentMode === 'focus'
+                    ? 'bg-purple-950/40 text-purple-300 border-purple-600/40'
+                    : 'bg-emerald-950/40 text-emerald-300 border-emerald-600/40'
+                }`}
+              >
+                {currentMode === 'focus' ? (
+                  <>
+                    <Target className="w-3 h-3 text-purple-400" />
+                    <span>Focusing</span>
+                  </>
+                ) : (
+                  <>
+                    <Coffee className="w-3 h-3 text-emerald-400" />
+                    <span>Relaxing</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Daily Circular Gauge (Screenshot 1 top right) */}
-          <div className="relative w-20 h-20 flex items-center justify-center">
+          {/* Daily Circular Gauge */}
+          <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
             <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 80 80">
               <circle
                 cx="40"
                 cy="40"
                 r={circleRadius}
-                stroke="#262b50"
+                stroke="currentColor"
+                className="text-slate-200/20"
                 strokeWidth="6"
                 fill="transparent"
               />
@@ -128,30 +150,34 @@ export const MeTab: React.FC<MeTabProps> = ({
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-sm font-extrabold text-white">{dailyPercent}%</span>
-              <span className="text-[10px] text-slate-400 font-medium">daily</span>
+              <span className="text-sm font-extrabold theme-text">{dailyPercent}%</span>
+              <span className="text-[10px] theme-text-muted font-medium">daily</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Focus Timer Card */}
+      {/* Focus Timer Card with Focus/Relax auto-toggle & cumulative tracking */}
       <FocusTimer
         onSessionComplete={onFocusComplete}
+        currentMode={currentMode}
+        onToggleMode={onToggleStatusMode}
+        onAccumulateFocus={onAccumulateFocusTime}
+        cumulativeMinutesToday={user.focusMinutesToday || 0}
         soundEnabled={soundEnabled}
         accentColor={accentColor}
       />
 
-      {/* MY TASKS Section (Matches Screenshot 1) */}
+      {/* MY TASKS Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+          <span className="text-xs font-bold tracking-wider theme-text-muted uppercase">
             MY TASKS
           </span>
 
           <button
             onClick={() => setIsAdding(!isAdding)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1f233f] hover:bg-[#282d52] text-xs font-bold text-slate-200 border border-[#2e345e] transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl theme-card-subtle text-xs font-bold theme-text border theme-border hover:opacity-80 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add</span>
@@ -160,20 +186,20 @@ export const MeTab: React.FC<MeTabProps> = ({
 
         {/* Inline Add Task Form */}
         {isAdding && (
-          <form onSubmit={handleCreateTask} className="p-3 rounded-2xl bg-[#16182e] border border-purple-500/40 space-y-2">
+          <form onSubmit={handleCreateTask} className="p-3 rounded-2xl theme-card border theme-border space-y-2">
             <input
               type="text"
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="e.g. Call partner during lunch, Book flight..."
-              className="w-full px-3 py-2 rounded-xl bg-[#1e2240] text-sm text-white placeholder-slate-400 border border-[#2e345e] focus:outline-none focus:border-purple-400"
+              placeholder="e.g. Call partner during lunch, Plan date..."
+              className="w-full px-3 py-2 rounded-xl theme-input text-sm theme-text placeholder:theme-text-muted border theme-border focus:outline-none"
               autoFocus
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
-                className="px-3 py-1 rounded-xl text-xs text-slate-400 hover:text-white"
+                className="px-3 py-1 rounded-xl text-xs theme-text-muted hover:opacity-80 cursor-pointer"
               >
                 Cancel
               </button>
@@ -192,20 +218,17 @@ export const MeTab: React.FC<MeTabProps> = ({
           {tasks.map((task) => (
             <div
               key={task.id}
-              className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all border ${
-                task.completed
-                  ? 'bg-[#151728]/70 border-[#222543] opacity-80'
-                  : 'bg-[#151728] border-[#24284b] hover:border-purple-500/30'
+              className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all border theme-card theme-border ${
+                task.completed ? 'opacity-70' : 'hover:border-purple-500/40'
               }`}
             >
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                {/* Round Checkbox (as in screenshot 1) */}
                 <button
                   onClick={() => handleTaskToggle(task.id, task.completed)}
                   className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                     task.completed
-                      ? 'bg-teal-400 text-slate-950 border border-teal-300 shadow-sm shadow-teal-400/40'
-                      : 'border-2 border-slate-600 hover:border-purple-400 bg-transparent'
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/40 ring-2 ring-purple-500/30'
+                      : 'border-2 theme-border hover:border-purple-400'
                   }`}
                 >
                   {task.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -214,8 +237,8 @@ export const MeTab: React.FC<MeTabProps> = ({
                 <span
                   className={`text-sm font-semibold truncate ${
                     task.completed
-                      ? 'line-through text-slate-400 font-normal'
-                      : 'text-slate-100'
+                      ? 'line-through theme-text-muted font-normal'
+                      : 'theme-text'
                   }`}
                 >
                   {task.title}
@@ -226,20 +249,20 @@ export const MeTab: React.FC<MeTabProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setActiveMenuTaskId(activeMenuTaskId === task.id ? null : task.id)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="p-1 rounded-lg theme-text-muted hover:opacity-100 cursor-pointer"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </button>
 
                 {activeMenuTaskId === task.id && (
-                  <div className="absolute right-0 top-7 z-20 w-28 rounded-xl bg-[#1c203b] border border-[#2e345e] shadow-xl py-1">
+                  <div className="absolute right-0 top-7 z-20 w-28 rounded-xl theme-card border theme-border shadow-xl py-1">
                     <button
                       onClick={() => {
                         onDeleteTask(task.id);
                         setActiveMenuTaskId(null);
                         sounds.playPop(soundEnabled);
                       }}
-                      className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                      className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-500 hover:bg-rose-500/10 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete</span>
@@ -251,8 +274,8 @@ export const MeTab: React.FC<MeTabProps> = ({
           ))}
 
           {tasks.length === 0 && (
-            <div className="text-center py-6 text-xs text-slate-400">
-              No tasks for today. Add one above to build your streak!
+            <div className="text-center py-6 text-xs theme-card-subtle rounded-2xl border theme-border theme-text-muted">
+              No tasks for today. Add one above to grow your tree & streak!
             </div>
           )}
         </div>

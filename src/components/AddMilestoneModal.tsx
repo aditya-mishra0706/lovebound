@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Calendar, Sparkles } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { Milestone } from '../types';
 
 interface AddMilestoneModalProps {
@@ -15,9 +15,9 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
   onSave,
 }) => {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('2026-10-30');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState<Milestone['category']>('anniversary');
-  const [icon, setIcon] = useState('✨');
+  const [icon, setIcon] = useState('💕');
   const [description, setDescription] = useState('');
 
   if (!isOpen) return null;
@@ -36,7 +36,7 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
     onClose();
   };
 
-  const ICONS = ['✨', '💖', '🥂', '✈️', '🏡', '🐾', '💍', '🚗', '🏔️', '🎉'];
+  const ICONS = ['💕', '💍', '✈️', '🏡', '🍾', '🌟', '🎓', '👶', '🐾', '🎂'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -44,11 +44,11 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full max-w-md rounded-3xl bg-[#151728] border border-[#2e345e] shadow-2xl p-5 overflow-hidden"
+        className="relative w-full max-w-md rounded-3xl theme-card border theme-border shadow-2xl p-5 overflow-hidden"
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-[#1e2240] text-slate-400 hover:text-white cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-full theme-card-subtle theme-text-muted hover:opacity-80 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -58,14 +58,14 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">Add Relationship Milestone</h3>
-            <p className="text-xs text-slate-400">Mark an anniversary or shared life event</p>
+            <h3 className="text-base font-bold theme-text">Add Relationship Milestone</h3>
+            <p className="text-xs theme-text-muted">Mark an anniversary or shared life event</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Milestone Name
             </label>
             <input
@@ -74,13 +74,13 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. 500 Days Together, Moved In Together, Engaged..."
-              className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-pink-400 placeholder-slate-400"
+              className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none placeholder:theme-text-muted"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+              <label className="text-[11px] font-semibold theme-text block mb-1">
                 Date
               </label>
               <input
@@ -88,18 +88,18 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-pink-400"
+                className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+              <label className="text-[11px] font-semibold theme-text block mb-1">
                 Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as Milestone['category'])}
-                className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white focus:outline-none focus:border-pink-400"
+                className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text focus:outline-none"
               >
                 <option value="anniversary">Anniversary 💕</option>
                 <option value="travel">Travel ✈️</option>
@@ -110,7 +110,7 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Choose Icon
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -119,10 +119,10 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
                   key={ic}
                   type="button"
                   onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg border transition-all ${
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg border transition-all cursor-pointer ${
                     icon === ic
-                      ? 'border-pink-400 bg-pink-950/60 shadow-sm'
-                      : 'border-[#2e345e] bg-[#1b1e36] hover:bg-[#252a4d]'
+                      ? 'border-pink-500 bg-pink-500/20 shadow-sm'
+                      : 'theme-border theme-card-subtle hover:opacity-80'
                   }`}
                 >
                   {ic}
@@ -132,7 +132,7 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+            <label className="text-[11px] font-semibold theme-text block mb-1">
               Description / Memory Note
             </label>
             <textarea
@@ -140,7 +140,7 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What makes this day so special..."
-              className="w-full px-3 py-2 rounded-xl bg-[#1b1e36] border border-[#2e345e] text-xs text-white placeholder-slate-400"
+              className="w-full px-3 py-2 rounded-xl theme-input border theme-border text-xs theme-text placeholder:theme-text-muted"
             />
           </div>
 
@@ -148,7 +148,7 @@ export const AddMilestoneModal: React.FC<AddMilestoneModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+              className="px-4 py-2 rounded-xl text-xs theme-text-muted hover:opacity-80 cursor-pointer"
             >
               Cancel
             </button>

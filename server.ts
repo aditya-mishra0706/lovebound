@@ -15,8 +15,10 @@ export interface CoupleSession {
     email: string;
     streakDays: number;
     statusText: string;
+    statusMode?: 'focus' | 'relax';
     isDeepWork: boolean;
     focusMinutesToday: number;
+    focusSecondsToday?: number;
     tasks: any[];
   };
   partner?: {
@@ -26,8 +28,10 @@ export interface CoupleSession {
     email: string;
     streakDays: number;
     statusText: string;
+    statusMode?: 'focus' | 'relax';
     isDeepWork: boolean;
     focusMinutesToday: number;
+    focusSecondsToday?: number;
     tasks: any[];
   };
   shared: {

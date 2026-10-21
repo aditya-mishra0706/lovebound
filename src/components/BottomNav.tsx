@@ -29,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav 
       aria-label="Primary mobile navigation"
-      className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 bg-[#101221]/95 backdrop-blur-xl border-t border-[#232746] px-2 py-1 shadow-2xl"
+      className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 theme-card backdrop-blur-xl border-t theme-border px-2 py-1 shadow-2xl transition-colors duration-300"
     >
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
@@ -41,10 +41,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               key={tab.id}
               onClick={() => onChangeTab(tab.id)}
               className={`relative flex flex-col items-center justify-center py-2 px-2.5 min-w-[50px] transition-all cursor-pointer ${
-                isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'font-bold' : 'opacity-70 hover:opacity-100'
               }`}
             >
-              {/* Active top/underline accent line as in screenshot */}
+              {/* Active top/underline accent line */}
               {isActive && (
                 <div
                   className="absolute -top-1 w-8 h-1 rounded-full shadow-sm"
@@ -55,7 +55,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               <div className="relative">
                 <Icon
                   className={`w-5 h-5 transition-transform ${
-                    isActive ? 'scale-110' : 'group-hover:scale-105'
+                    isActive ? 'scale-110' : ''
                   }`}
                   style={{ color: isActive ? themeConfig.primaryColor : undefined }}
                 />
@@ -68,8 +68,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               </div>
 
               <span
-                className={`text-[10px] mt-1 font-semibold tracking-tight ${
-                  isActive ? 'text-white' : 'text-slate-400'
+                className={`text-[10px] mt-1 tracking-tight ${
+                  isActive ? 'theme-text font-bold' : 'theme-text-muted'
                 }`}
                 style={{ color: isActive ? themeConfig.primaryColor : undefined }}
               >

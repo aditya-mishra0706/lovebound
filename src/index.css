@@ -1,1 +1,90 @@
 @import "tailwindcss";
+
+/* 4 Distinct Themes: Light, Dark, Love, Dream */
+[data-theme="light"] {
+  --duo-bg: #f8fafc;
+  --duo-card: #ffffff;
+  --duo-card-subtle: #f1f5f9;
+  --duo-border: #e2e8f0;
+  --duo-text: #0f172a;
+  --duo-text-muted: #64748b;
+  --duo-accent: #6366f1;
+  --duo-accent-glow: rgba(99, 102, 241, 0.15);
+  --duo-input-bg: #f1f5f9;
+  --duo-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+  --duo-bg: #090a12;
+  --duo-card: #131525;
+  --duo-card-subtle: #1c1f36;
+  --duo-border: #262a4d;
+  --duo-text: #f8fafc;
+  --duo-text-muted: #94a3b8;
+  --duo-accent: #8b5cf6;
+  --duo-accent-glow: rgba(139, 92, 246, 0.2);
+  --duo-input-bg: #1c1f38;
+  --duo-card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="love"] {
+  --duo-bg: #fff1f2;
+  --duo-card: #ffffff;
+  --duo-card-subtle: #ffe4e6;
+  --duo-border: #fecdd3;
+  --duo-text: #881337;
+  --duo-text-muted: #be123c;
+  --duo-accent: #f43f5e;
+  --duo-accent-glow: rgba(244, 63, 94, 0.25);
+  --duo-input-bg: #fff5f6;
+  --duo-card-shadow: 0 4px 20px -2px rgba(244, 63, 94, 0.08);
+}
+
+[data-theme="dream"] {
+  --duo-bg: #0d0b22;
+  --duo-card: #17133b;
+  --duo-card-subtle: #231c54;
+  --duo-border: #382c76;
+  --duo-text: #f5f3ff;
+  --duo-text-muted: #c4b5fd;
+  --duo-accent: #c084fc;
+  --duo-accent-glow: rgba(192, 132, 252, 0.25);
+  --duo-input-bg: #221a4f;
+  --duo-card-shadow: 0 4px 20px -2px rgba(126, 34, 206, 0.3);
+}
+
+.theme-card {
+  background-color: var(--duo-card) !important;
+  border-color: var(--duo-border) !important;
+  color: var(--duo-text) !important;
+  box-shadow: var(--duo-card-shadow);
+}
+
+.theme-card-subtle {
+  background-color: var(--duo-card-subtle) !important;
+  border-color: var(--duo-border) !important;
+  color: var(--duo-text) !important;
+}
+
+.theme-input {
+  background-color: var(--duo-input-bg) !important;
+  border-color: var(--duo-border) !important;
+  color: var(--duo-text) !important;
+}
+
+.theme-text {
+  color: var(--duo-text) !important;
+}
+
+.theme-text-muted {
+  color: var(--duo-text-muted) !important;
+}
+
+.theme-border {
+  border-color: var(--duo-border) !important;
+}
+
+.theme-bg {
+  background-color: var(--duo-bg) !important;
+  color: var(--duo-text) !important;
+}
