@@ -11,6 +11,7 @@ interface PhoneFrameProps {
   partnerName: string;
   pairingCode?: string;
   isPaired?: boolean;
+  onOpenPhoneAppModal?: () => void;
 }
 
 export const PhoneFrame: React.FC<PhoneFrameProps> = ({
@@ -22,6 +23,7 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
   partnerName,
   pairingCode,
   isPaired,
+  onOpenPhoneAppModal,
 }) => {
   const [isPhoneView, setIsPhoneView] = useState<boolean>(true);
 
@@ -58,22 +60,35 @@ export const PhoneFrame: React.FC<PhoneFrameProps> = ({
           )}
         </div>
 
-        <button
-          onClick={() => setIsPhoneView(!isPhoneView)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg theme-card theme-border border cursor-pointer hover:opacity-80 transition-opacity text-xs"
-        >
-          {isPhoneView ? (
-            <>
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span>Full Screen</span>
-            </>
-          ) : (
-            <>
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Phone Frame</span>
-            </>
+        <div className="flex items-center gap-2">
+          {onOpenPhoneAppModal && (
+            <button
+              onClick={onOpenPhoneAppModal}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500/40 text-purple-200 cursor-pointer hover:opacity-90 transition-opacity text-xs font-bold"
+              title="Get Android APK or install on phone"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-pink-400" />
+              <span>Get APK / Phone App</span>
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={() => setIsPhoneView(!isPhoneView)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg theme-card theme-border border cursor-pointer hover:opacity-80 transition-opacity text-xs"
+          >
+            {isPhoneView ? (
+              <>
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span>Full Screen</span>
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Phone Frame</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main Container / Phone Mockup (Top bar with wifi/battery removed as requested) */}

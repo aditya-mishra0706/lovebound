@@ -17,7 +17,10 @@ import {
   Users,
   Moon,
   ShieldCheck,
-  Copy
+  Copy,
+  Smartphone,
+  Package,
+  ExternalLink
 } from 'lucide-react';
 import { CoupleSettings, ThemeMode, UserProfile, CelebrationEffect } from '../types';
 import { THEMES } from '../utils/theme';
@@ -37,6 +40,7 @@ interface SettingsTabProps {
   onImportData: (jsonStr: string) => void;
   onLogout: () => void;
   onPairWithCode?: (code: string) => void;
+  onOpenPhoneAppModal?: () => void;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -52,6 +56,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   onImportData,
   onLogout,
   onPairWithCode,
+  onOpenPhoneAppModal,
 }) => {
   const [isEditingCouple, setIsEditingCouple] = useState(false);
   const [coupleNameInput, setCoupleNameInput] = useState(settings.coupleName);
@@ -497,19 +502,64 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </div>
 
+      {/* ANDROID APK & PHONE APP CONVERSION CARD */}
+      <div className="space-y-2.5">
+        <span className="text-xs font-bold tracking-wider theme-text-muted uppercase px-1">
+          ANDROID APK & PHONE INSTALLATION
+        </span>
+
+        <div className="rounded-3xl p-5 theme-card border theme-border shadow-lg space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-pink-600 to-rose-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
+              <div className="w-full h-full theme-bg rounded-[14px] flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-pink-400" />
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-extrabold theme-text">Get Duo on Android / Phone</h4>
+              <p className="text-xs theme-text-muted">Convert into .apk, install directly, or download project</p>
+            </div>
+          </div>
+
+          <p className="text-xs theme-text-muted leading-relaxed">
+            Duo is configured with both a Progressive Web App (PWA) manifest for instant 1-tap installation and an Android Capacitor project ready to build into an APK installer.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={onOpenPhoneAppModal}
+              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+            >
+              <Package className="w-4 h-4" />
+              <span>Generate APK / Install</span>
+            </button>
+
+            <a
+              href="/api/download-android-project"
+              download="duo-android-project.zip"
+              className="py-2.5 px-3 rounded-xl theme-card-subtle hover:opacity-90 border theme-border theme-text text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <Download className="w-4 h-4 text-purple-400" />
+              <span>Download Project (.zip)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* SYNC & PAIRING CODE CARD */}
       <div className="space-y-2.5">
-        <span className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1">
+        <span className="text-xs font-bold tracking-wider theme-text-muted uppercase px-1">
           DEVICE SYNC & PAIRING CODE
         </span>
 
-        <div className="rounded-3xl p-5 bg-[#151728] border border-[#262a4d] shadow-lg space-y-3">
+        <div className="rounded-3xl p-5 theme-card border theme-border shadow-lg space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider block">
                 YOUR SYNC CODE
               </span>
-              <span className="text-2xl font-mono font-black text-white tracking-widest mt-0.5 block">
+              <span className="text-2xl font-mono font-black theme-text tracking-widest mt-0.5 block">
                 {pairingCode}
               </span>
             </div>
@@ -522,21 +572,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   alert(`Copied sync code: ${pairingCode} to clipboard! Share it with your partner.`);
                 }
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/45 text-purple-200 border border-purple-500/40 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/45 text-purple-300 border border-purple-500/40 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>Copy Code</span>
             </button>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs theme-text-muted">
             Put this code in your partner's Duo app to sync your goals, streak, and photo memories together.
           </p>
 
-          <div className="pt-2 border-t border-[#222543] flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-slate-300">
+          <div className="pt-2 border-t theme-border flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5 theme-text-muted">
               <span className={`w-2 h-2 rounded-full ${isPaired ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span>Status: <strong className={isPaired ? 'text-emerald-300' : 'text-amber-300'}>{isPaired ? `Paired with ${partner.name}` : 'Waiting for Partner'}</strong></span>
+              <span>Status: <strong className={isPaired ? 'text-emerald-400' : 'text-amber-400'}>{isPaired ? `Paired with ${partner.name}` : 'Waiting for Partner'}</strong></span>
             </span>
 
             {!isPaired && onPairWithCode && (

@@ -404,6 +404,27 @@ async function startServer() {
     }
   });
 
+  // Direct APK / Android Project Download endpoint
+  app.get('/api/download-android-project', (req: Request, res: Response) => {
+    const zipPath = path.resolve(__dirname, 'public', 'duo-android-project.zip');
+    if (fs.existsSync(zipPath)) {
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="duo-android-project.zip"');
+      return res.sendFile(zipPath);
+    }
+    return res.status(404).json({ error: 'Android project archive not found' });
+  });
+
+  // Explicit manifest route with application/manifest+json content type
+  app.get(['/manifest.json', '/manifest.webmanifest'], (req: Request, res: Response) => {
+    const manifestPath = path.resolve(__dirname, 'public', 'manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      res.setHeader('Content-Type', 'application/manifest+json');
+      return res.sendFile(manifestPath);
+    }
+    return res.status(404).end();
+  });
+
   // --- VITE OR STATIC ASSETS SERVING ---
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));

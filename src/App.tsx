@@ -50,6 +50,7 @@ import { SettingsTab } from './components/SettingsTab';
 import { AddGoalModal } from './components/AddGoalModal';
 import { AddMilestoneModal } from './components/AddMilestoneModal';
 import { AddMemoryModal } from './components/AddMemoryModal';
+import { PhoneAppModal } from './components/PhoneAppModal';
 import { sounds } from './utils/audio';
 import { triggerCelebration, stopCelebration } from './utils/confetti';
 import { syncService } from './utils/syncService';
@@ -101,6 +102,7 @@ export default function App() {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false);
   const [isAddMemoryOpen, setIsAddMemoryOpen] = useState(false);
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
 
   // 5. Live incoming sync banner & celebration stop controller
   const [liveSyncToast, setLiveSyncToast] = useState<string | null>(null);
@@ -297,6 +299,35 @@ export default function App() {
         // Midnight has passed!
         const myActiveTasks = tasks.filter((t) => t.ownerId === myUserId);
         const partnerActiveTasks = tasks.filter((t) => t.ownerId === partnerUserId);
+
+        // Record yesterday's final real synergy into daily history before clearing
+        const myTotal = myActiveTasks.length;
+        const myDone = myActiveTasks.filter((t) => t.completed).length;
+        const pTotal = partnerActiveTasks.length;
+        const pDone = partnerActiveTasks.filter((t) => t.completed).length;
+        const myPct = myTotal > 0 ? Math.round((myDone / myTotal) * 100) : 0;
+        const pPct = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : 0;
+        const divisor = (myTotal > 0 ? 1 : 0) + (pTotal > 0 ? 1 : 0);
+        const comb = divisor > 0 ? Math.round((myPct + pPct) / divisor) : 0;
+
+        try {
+          const rawHist = localStorage.getItem('duo_daily_history');
+          const hist = rawHist ? JSON.parse(rawHist) : {};
+          hist[lastActiveDate] = {
+            date: lastActiveDate,
+            me: myPct,
+            partner: pPct,
+            combined: comb,
+            meTasksDone: myDone,
+            meTasksTotal: myTotal,
+            partnerTasksDone: pDone,
+            partnerTasksTotal: pTotal,
+            isActiveDay: myTotal > 0 || pTotal > 0,
+          };
+          localStorage.setItem('duo_daily_history', JSON.stringify(hist));
+        } catch {
+          // Ignore storage error
+        }
 
         const myAllDone = myActiveTasks.length > 0 && myActiveTasks.every((t) => t.completed);
         const partnerAllDone = partnerActiveTasks.length > 0 && partnerActiveTasks.every((t) => t.completed);
@@ -860,6 +891,7 @@ export default function App() {
       partnerName={userPartner.name}
       pairingCode={authSession.myPairingCode}
       isPaired={authSession.isPaired}
+      onOpenPhoneAppModal={() => setIsPhoneModalOpen(true)}
     >
       {/* Live sync notification toast */}
       {liveSyncToast && (
@@ -921,6 +953,10 @@ export default function App() {
         <MilestonesChartsTab
           goals={goals}
           milestones={milestones}
+          myTasks={myTasks}
+          partnerTasks={partnerTasks}
+          userMe={userMe}
+          userPartner={userPartner}
           onAddGoal={() => setIsAddGoalOpen(true)}
           onAddMilestone={() => setIsAddMilestoneOpen(true)}
           onUpdateGoalProgress={handleUpdateGoalProgress}
@@ -982,6 +1018,7 @@ export default function App() {
           onExportData={handleExportData}
           onImportData={handleImportData}
           onLogout={handleLogout}
+          onOpenPhoneAppModal={() => setIsPhoneModalOpen(true)}
         />
       )}
 
@@ -1013,6 +1050,12 @@ export default function App() {
         isOpen={isAddMemoryOpen}
         onClose={() => setIsAddMemoryOpen(false)}
         onSave={handleAddMemory}
+      />
+
+      <PhoneAppModal
+        isOpen={isPhoneModalOpen}
+        onClose={() => setIsPhoneModalOpen(false)}
+        soundEnabled={settings.soundAndHaptics}
       />
     </PhoneFrame>
   );
