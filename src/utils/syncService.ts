@@ -4,7 +4,7 @@
  */
 
 import { syncManager } from './syncChannel';
-
+const API_BASE_URL = 'https://lovebound.onrender.com';
 export interface CoupleServerState {
   code: string;
   creator: any;
@@ -70,7 +70,9 @@ class SyncService {
     }
 
     try {
-      const res = await fetch(`/api/sync/check/${encodeURIComponent(cleanCode)}`);
+      const res = await fetch(
+  `${API_BASE_URL}/api/sync/check/${encodeURIComponent(cleanCode)}`
+);
       const data: CheckCodeResult = await res.json();
       return data;
     } catch (e: any) {
@@ -81,7 +83,7 @@ class SyncService {
   // 2. Fetch list of active rooms
   async getActiveRooms(): Promise<Array<{ code: string; coupleName: string; creatorName: string; hasPartner: boolean }>> {
     try {
-      const res = await fetch('/api/sync/active-codes');
+      const res = await fetch(`${API_BASE_URL}/api/sync/active-codes`);
       const data = await res.json();
       return data.rooms || [];
     } catch {
@@ -106,7 +108,7 @@ class SyncService {
     this.activeCode = code.trim().toUpperCase();
     this.userRole = 'creator';
     try {
-      const res = await fetch('/api/sync/register', {
+      const res = await fetch(`${API_BASE_URL}/api/sync/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +136,7 @@ class SyncService {
   async joinCouple(code: string, partner: any) {
     const cleanCode = code.trim().toUpperCase();
     try {
-      const res = await fetch('/api/sync/join', {
+      const res = await fetch(`${API_BASE_URL}/api/sync/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: cleanCode, partner }),
@@ -176,7 +178,7 @@ class SyncService {
     const role = payload.userRole || this.userRole;
 
     try {
-      await fetch(`/api/sync/push/${encodeURIComponent(this.activeCode)}`, {
+     await fetch(`${API_BASE_URL}/api/sync/push/${encodeURIComponent(this.activeCode)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +207,7 @@ class SyncService {
     const poll = async () => {
       if (!this.activeCode) return;
       try {
-        const res = await fetch(`/api/sync/pull/${encodeURIComponent(this.activeCode)}`);
+        const res = await fetch(`${API_BASE_URL}/api/sync/pull/${encodeURIComponent(this.activeCode)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.found && data.couple) {
